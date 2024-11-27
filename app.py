@@ -54,13 +54,13 @@ def get_responses():
         rows = cursor.fetchall()
         cursor.close()
         conn.close()
-        # Convert rows to a list of dictionaries for better JSON formatting
+        # Обработка на резултатите
         results = [
             {
                 "id": row[0],
                 "client_name": row[1],
-                "response": json.loads(row[2]),  # Convert JSONB to dictionary
-                "created_at": row[3].isoformat()  # Format timestamp to ISO format
+                "response": row[2],  # Не декодираме отново, защото е JSON
+                "created_at": row[3].isoformat()  # Форматиране на времето
             } for row in rows
         ]
         return jsonify(results), 200
