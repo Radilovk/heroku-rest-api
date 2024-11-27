@@ -8,13 +8,16 @@ app = Flask(__name__)
 
 # Database connection function
 def get_db_connection():
-    return psycopg2.connect(
-        host=os.getenv("DB_HOST"),
-        database=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        port="5432"
-    )
+    try:
+        return psycopg2.connect(
+            host=os.getenv("DB_HOST"),
+            database=os.getenv("DB_NAME"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            port="5432"
+        )
+    except Exception as e:
+        raise Exception(f"Database connection failed: {str(e)}")
 
 # Home route for checking application status
 @app.route('/')
@@ -39,7 +42,7 @@ def add_response():
         conn.close()
         return jsonify({"message": "Response added successfully"}), 201
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to add response: {str(e)}"}), 500
 
 # Route to get all responses
 @app.route('/get-responses', methods=['GET'])
@@ -53,11 +56,16 @@ def get_responses():
         conn.close()
         # Convert rows to a list of dictionaries for better JSON formatting
         results = [
-            {"id": row[0], "client_name": row[1], "response": row[2], "created_at": row[3]} for row in rows
+            {
+                "id": row[0],
+                "client_name": row[1],
+                "response": json.loads(row[2]),  # Convert JSONB to dictionary
+                "created_at": row[3].isoformat()  # Format timestamp to ISO format
+            } for row in rows
         ]
         return jsonify(results), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to fetch responses: {str(e)}"}), 500
 
 # Administrative route to execute SQL commands
 @app.route('/admin/create-table', methods=['POST'])
@@ -75,7 +83,7 @@ def create_table():
         conn.close()
         return jsonify({"message": "Table created successfully"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to execute query: {str(e)}"}), 500
 
 # Main application entry point
 if __name__ == "__main__":
