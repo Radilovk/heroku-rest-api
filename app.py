@@ -3,6 +3,7 @@ import psycopg2
 import os
 import json
 
+# Flask application initialization
 app = Flask(__name__)
 
 # Database connection function
@@ -15,37 +16,17 @@ def get_db_connection():
         port="5432"
     )
 
-# Home route
+# Home route for checking application status
 @app.route('/')
 def home():
     return "REST API for managing client responses is running!", 200
 
-# Create the 'client_responses' table
-@app.route('/create-table', methods=['POST'])
-def create_table():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        create_table_query = """
-        CREATE TABLE IF NOT EXISTS client_responses (
-            id SERIAL PRIMARY KEY,
-            client_name VARCHAR(255),
-            response JSONB,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        """
-        cursor.execute(create_table_query)
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return jsonify({"message": "Table 'client_responses' created successfully or already exists."}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# Add a new response
+# Route to add a new response
 @app.route('/add-response', methods=['POST'])
 def add_response():
     data = request.json
+    if not data or 'client_name' not in data or 'response' not in data:
+        return jsonify({"error": "Invalid input"}), 400
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -60,7 +41,7 @@ def add_response():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Get all responses
+# Route to get all responses
 @app.route('/get-responses', methods=['GET'])
 def get_responses():
     try:
@@ -70,10 +51,33 @@ def get_responses():
         rows = cursor.fetchall()
         cursor.close()
         conn.close()
-        return jsonify(rows), 200
+        # Convert rows to a list of dictionaries for better JSON formatting
+        results = [
+            {"id": row[0], "client_name": row[1], "response": row[2], "created_at": row[3]} for row in rows
+        ]
+        return jsonify(results), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Administrative route to execute SQL commands
+@app.route('/admin/create-table', methods=['POST'])
+def create_table():
+    data = request.json
+    query = data.get("query")
+    if not query:
+        return jsonify({"error": "No query provided"}), 400
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(query)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"message": "Table created successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Main application entry point
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Use Heroku's PORT or default to 5000
     app.run(host="0.0.0.0", port=port)
