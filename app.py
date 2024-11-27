@@ -22,7 +22,7 @@ def get_db_connection():
 # Home route for checking application status
 @app.route('/')
 def home():
-    return "REST API for managing client responses is running!", 200
+    return "REST API for managing client responses and test table is running!", 200
 
 # Route to add a new response
 @app.route('/add-response', methods=['POST'])
@@ -59,8 +59,8 @@ def get_responses():
             {
                 "id": row[0],
                 "client_name": row[1],
-                "response": row[2],  # Не декодираме отново, защото е JSON
-                "created_at": row[3].isoformat()  # Форматиране на времето
+                "response": row[2],
+                "created_at": row[3].isoformat()
             } for row in rows
         ]
         return jsonify(results), 200
@@ -84,6 +84,25 @@ def create_table():
         return jsonify({"message": "Table created successfully"}), 200
     except Exception as e:
         return jsonify({"error": f"Failed to execute query: {str(e)}"}), 500
+
+# Route to view all data from test_table
+@app.route('/admin/view-test-table', methods=['GET'])
+def view_test_table():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM test_table;")
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        # Форматиране на резултатите
+        results = [
+            {"id": row[0], "name": row[1], "email": row[2], "created_at": row[3].isoformat()}
+            for row in rows
+        ]
+        return jsonify(results), 200
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch table: {str(e)}"}), 500
 
 # Main application entry point
 if __name__ == "__main__":
