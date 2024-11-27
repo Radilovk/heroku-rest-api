@@ -15,6 +15,11 @@ def get_db_connection():
         port="5432"
     )
 
+# Home route
+@app.route('/')
+def home():
+    return "REST API for managing client responses is running!", 200
+
 # Add a new response
 @app.route('/add-response', methods=['POST'])
 def add_response():
